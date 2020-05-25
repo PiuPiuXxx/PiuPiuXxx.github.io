@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="Java, 后台开发" />
+  <meta name="keywords" content="redis,一致性," />
 
 
 
@@ -79,16 +79,24 @@
 
 
 
-<meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+<meta name="description" content="为什么要用缓存？缓存的优点在哪里？缓存由于其高并发和高性能的特性，已经在项目中被广泛使用 高性能假设有个业务场景，用户发来一个数据库操作请求，然后后台这边吭哧吭哧经过各种Spring + Mybatis乱七八糟的各种CRUD操作 mysql，半天查出来一个结果，耗时 600ms。但是这个结果可能接下来几个小时都不会变了，或者变了也可以不用立即反馈给用户。那么此时咋办？ 缓存啊，折腾 600ms 查">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hello World">
-<meta property="og:url" content="http://yoursite.com/2020/05/25/hello-world/index.html">
+<meta property="og:title" content="缓存的优缺点、缓存一致性">
+<meta property="og:url" content="http://yoursite.com/2020/05/25/%E7%BC%93%E5%AD%98/index.html">
 <meta property="og:site_name" content="进击的小勺子">
-<meta property="og:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
-<meta property="article:published_time" content="2020-05-25T04:27:26.776Z">
-<meta property="article:modified_time" content="2020-05-25T04:27:26.776Z">
+<meta property="og:description" content="为什么要用缓存？缓存的优点在哪里？缓存由于其高并发和高性能的特性，已经在项目中被广泛使用 高性能假设有个业务场景，用户发来一个数据库操作请求，然后后台这边吭哧吭哧经过各种Spring + Mybatis乱七八糟的各种CRUD操作 mysql，半天查出来一个结果，耗时 600ms。但是这个结果可能接下来几个小时都不会变了，或者变了也可以不用立即反馈给用户。那么此时咋办？ 缓存啊，折腾 600ms 查">
+<meta property="og:image" content="http://yoursite.com/2020/05/25/%E7%BC%93%E5%AD%98/redis-caching-penetration.png">
+<meta property="og:image" content="http://yoursite.com/2020/05/25/%E7%BC%93%E5%AD%98/redis-caching-avalanche.png">
+<meta property="og:image" content="http://yoursite.com/2020/05/25/%E7%BC%93%E5%AD%98/o_getkeyflow.png">
+<meta property="og:image" content="http://yoursite.com/2020/05/25/%E7%BC%93%E5%AD%98/o_update1.png">
+<meta property="og:image" content="http://yoursite.com/2020/05/25/%E7%BC%93%E5%AD%98/o_update2.png">
+<meta property="article:published_time" content="2020-05-25T12:13:20.587Z">
+<meta property="article:modified_time" content="2020-05-25T13:32:51.850Z">
 <meta property="article:author" content="Weishao Cheng">
+<meta property="article:tag" content="redis">
+<meta property="article:tag" content="一致性">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2020/05/25/%E7%BC%93%E5%AD%98/redis-caching-penetration.png">
 
 
 
@@ -118,13 +126,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2020/05/25/hello-world/"/>
+  <link rel="canonical" href="http://yoursite.com/2020/05/25/缓存/"/>
 
 
 
 
 
-  <title>Hello World | 进击的小勺子</title>
+  <title>缓存的优缺点、缓存一致性 | 进击的小勺子</title>
   
 
 
@@ -261,7 +269,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/05/25/hello-world/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/05/25/%E7%BC%93%E5%AD%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Weishao Cheng">
@@ -278,7 +286,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">Hello World</h1>
+          <h1 class="post-title" itemprop="name headline">缓存的优缺点、缓存一致性</h1>
         
 
         <div class="post-meta">
@@ -290,7 +298,7 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-25T12:27:26+08:00">
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-25T20:13:20+08:00">
                 2020-05-25
               </time>
             
@@ -301,6 +309,39 @@
           </span>
 
           
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AE%9E%E7%94%A8%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index">
+                    <span itemprop="name">实用技术</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AE%9E%E7%94%A8%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
+                    <span itemprop="name">学习笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
 
           
             
@@ -308,7 +349,7 @@
 
           
           
-             <span id="/2020/05/25/hello-world/" class="leancloud_visitors" data-flag-title="Hello World">
+             <span id="/2020/05/25/%E7%BC%93%E5%AD%98/" class="leancloud_visitors" data-flag-title="缓存的优缺点、缓存一致性">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -344,19 +385,116 @@
       
 
       
-        <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+        <h2 id="为什么要用缓存？缓存的优点在哪里？"><a href="#为什么要用缓存？缓存的优点在哪里？" class="headerlink" title="为什么要用缓存？缓存的优点在哪里？"></a>为什么要用缓存？缓存的优点在哪里？</h2><p>缓存由于其高并发和高性能的特性，已经在项目中被广泛使用</p>
+<h3 id="高性能"><a href="#高性能" class="headerlink" title="高性能"></a>高性能</h3><p>假设有个业务场景，用户发来一个数据库操作请求，然后后台这边吭哧吭哧经过各种Spring + Mybatis乱七八糟的各种CRUD操作 mysql，半天查出来一个结果，耗时 600ms。但是这个结果可能接下来几个小时都不会变了，或者变了也可以不用立即反馈给用户。那么此时咋办？ 缓存啊，折腾 600ms 查出来的结果，扔缓存里，一个 key 对应一个 value，下次再有人查，别走 mysql 折腾 600ms 了，直接从缓存里，通过一个 key 查出来一个 value，2ms 搞定。性能提升 300 倍。 就是说对于一些需要复杂操作耗时查出来的结果，且确定后面不怎么变化，但是有很多读请求，那么直接将查询出来的结果放在缓存中，后面直接读缓存就好。</p>
+<h3 id="高并发"><a href="#高并发" class="headerlink" title="高并发"></a>高并发</h3><p>mysql 这么重的数据库，压根儿设计不是让你玩儿高并发的，虽然也可以玩儿，但是天然支持不好。mysql单机一般运行在1k的QPS，支撑到 2k的QPS 也开始容易报警了。 所以要是你有个系统，高峰期一秒钟过来的请求有 1万，全部打在 mysql 单机上，完蛋，你的系统绝对就直接崩掉了。你这个时候就只能上缓存，把很多数据放缓存，别放 mysql。缓存功能简单，说白了就是 key-value 式操作，单机支撑的并发量轻松一秒几万十几万，支撑高并发 so easy。单机承载并发量是 mysql 单机的几十倍。</p>
+<blockquote>
+<p>缓存存储在内存结构中，内存RAM的优秀性能天然就支持高并发</p>
+</blockquote>
+<h2 id="用缓存必须考虑的问题？缓存带来的缺点？"><a href="#用缓存必须考虑的问题？缓存带来的缺点？" class="headerlink" title="用缓存必须考虑的问题？缓存带来的缺点？"></a>用缓存必须考虑的问题？缓存带来的缺点？</h2><h3 id="缓存穿透"><a href="#缓存穿透" class="headerlink" title="缓存穿透"></a>缓存穿透</h3><p>大量在数据库中不存在的用户请求穿过缓存直接打在后台的数据库上</p>
+<p><img src="/2020/05/25/%E7%BC%93%E5%AD%98/redis-caching-penetration.png" alt="redis-caching-penetration"></p>
+<p>解决办法:</p>
+<ul>
+<li>一旦后台查询为空也根据key设置缓存为空，指定过期时间</li>
+<li>但是对于UUID查询条件也会有问题，此时需要布隆（Bloom）滤波器过滤请求</li>
+</ul>
+<blockquote>
+<p>Redis的高级数据结构bitmap是支持布隆滤波器很好的数据结构</p>
+</blockquote>
+<h3 id="缓存击穿"><a href="#缓存击穿" class="headerlink" title="缓存击穿"></a>缓存击穿</h3><p>某个热点 key 的访问非常频繁，处于集中式高并发访问的情况，当这个 key 在失效的瞬间，大量的请求就击穿了缓存，直接请求数据库，就像是在一道屏障上凿开了一个洞。 </p>
+<p>解决方法:</p>
+<ul>
+<li>可以将热点数据设置为永远不过期；</li>
+<li>基于 redis or zookeeper 实现互斥锁，等待第一个请求构建完缓存</li>
+</ul>
+<h3 id="缓存雪崩"><a href="#缓存雪崩" class="headerlink" title="缓存雪崩"></a>缓存雪崩</h3><p>缓存中数据大批量到过期时间，而查询数据量巨大，引起数据库压力过大甚至down机</p>
+<p><img src="/2020/05/25/%E7%BC%93%E5%AD%98/redis-caching-avalanche.png" alt="redis-caching-avalanche"></p>
+<p>解决办法：</p>
+<ul>
+<li>缓存数据的过期时间设置随机，防止同一时间大量数据过期现象发生</li>
+<li>如果缓存数据库是分布式部署，将热点数据均匀分布在不同的缓存数据库中</li>
+<li>设置热点数据永远不过期</li>
+</ul>
+<p>如果是对于机器宕机或者大流量下的缓存雪崩：</p>
+<ul>
+<li>事前：redis 高可用，主从+哨兵，redis cluster，避免全盘崩溃。 </li>
+<li>事中：本地 ehcache 缓存 + hystrix 限流&amp;降级，避免 MySQL 被打死</li>
+<li>事后：redis 持久化，一旦重启，自动从磁盘上加载数据，快速恢复缓存数据</li>
+</ul>
+<blockquote>
+<p>缓存雪崩和缓存击穿的区别：</p>
+<p>​        缓存击穿指并发查同一条数据，大流量下失效时大量请求冲击数据库<br>​        缓存雪崩是不同数据同时过期，不同数据同时请求查数据库</p>
+</blockquote>
+<h2 id="缓存和数据库的双写一致性"><a href="#缓存和数据库的双写一致性" class="headerlink" title="缓存和数据库的双写一致性"></a>缓存和数据库的双写一致性</h2><p>先来看一下一次正常的缓存系统请求过程</p>
+<p><img src="/2020/05/25/%E7%BC%93%E5%AD%98/o_getkeyflow.png" alt="o_getkeyflow"></p>
+<p><strong>但是对于缓存的更新策略如何去抉择？</strong></p>
+<ul>
+<li><p>先删除缓存，再更新数据库</p>
+</li>
+<li><p>先更新数据库，再删除缓存</p>
+</li>
+</ul>
+<p>这里先提一下为什么不选择去更新缓存而是去直接删除缓存，等到查询时再同步缓存</p>
+<ul>
+<li><p>线程安全：A、B两个写操作时会出现缓存的覆盖更新的问题</p>
+</li>
+<li><p>业务场景：写库多、读库少时，会导致缓存无意义的频繁更新，浪费性能</p>
+<p>​                    缓存需要经过数据库数据的计算，极大拖慢写操作的性能</p>
+</li>
+</ul>
+<h3 id="先删除缓存，再更新数据库"><a href="#先删除缓存，再更新数据库" class="headerlink" title="先删除缓存，再更新数据库"></a>先删除缓存，再更新数据库</h3><p>问题: A、B多个请求时会出现脏数据</p>
+<ul>
+<li><p>请求A进行写操作，删除缓存</p>
+</li>
+<li><p>请求B查询发现缓存不存在</p>
+</li>
+<li><p>请求B去数据库查询得到旧值</p>
+</li>
+<li><p>请求B将旧值写入缓存</p>
+</li>
+<li><p>请求A将新值写入数据库</p>
+<p>​        </p>
+</li>
+</ul>
+<p>解决办法：延时双删策略</p>
+<p>先淘汰缓存，再写数据库，休眠1000ms后再次淘汰缓存</p>
+<p>延时双删策略可以保证只在休眠的时间内会出现脏数据   </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">write</span><span class="params">(String key,Object data)</span></span>&#123;</span><br><span class="line">    redis.delKey(key);</span><br><span class="line">    db.updateData(data);</span><br><span class="line">    Thread.sleep(<span class="number">1000</span>);</span><br><span class="line">    redis.delKey(key);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+<p>​                    </p>
+<p><strong>如何确定休眠时间？</strong></p>
+<p>休眠的目的是为了确保读请求结束，写请求可以删除读请求造成的缓存脏数据</p>
+<p>一般设置为：业务读时间 + 主从同步时间（mysql读写分离） + 200ms</p>
+<p>​           </p>
+<p><strong>采用这种同步淘汰策略，吞吐量降低怎么办？</strong></p>
+<p>将第二次删除作为异步：起一个线程，异步删除</p>
+<p>​       </p>
+<h3 id="先更新数据库，再删除缓存"><a href="#先更新数据库，再删除缓存" class="headerlink" title="先更新数据库，再删除缓存"></a>先更新数据库，再删除缓存</h3><p>老外提出了一个缓存更新套路，名为《Cache-Aside pattern》。其中就指出</p>
+<ul>
+<li><p><strong>失效</strong>：应用程序先从cache取数据，没有得到，则从数据库中取数据，成功后，放到缓存中</p>
+</li>
+<li><p><strong>命中</strong>：应用程序从cache中取数据，取到后返回。</p>
+</li>
+<li><p><strong>更新</strong>：先把数据存到数据库中，成功后，再让缓存失效。</p>
+<p>​           </p>
+</li>
+</ul>
+<p>知名社交网站facebook也在论文《Scaling Memcache at Facebook》中提出，他们用的也是先更新数据库，再删缓存的策略。</p>
+<p>​    </p>
+<p>因为<strong>读操作比写操作耗时少</strong>得多，理论上只有在缓存刚好失效，此时一个读数据库操作，如果有一个写操作在读操作完成时间内完成了数据库更新并删除缓存，此时读操作才会得到旧的脏数据</p>
+<p>​    </p>
+<p>所以唯一会出现问题的只是<strong>删除缓存失败</strong>的问题？只是？这很麻烦的好吧？</p>
+<ul>
+<li>方案1: 提供一个保障的重试机制，在业务代码中解决，业务线代码造成大量的侵入</li>
+</ul>
+<p><img src="/2020/05/25/%E7%BC%93%E5%AD%98/o_update1.png" alt="o_update1"></p>
+<ul>
+<li>方案2: 启动一个订阅程序去订阅数据库的binlog，获得需要操作的数据。在应用程序中，另起一段程序，获得这个订阅程序传来的信息，进行删除缓存操作</li>
+</ul>
+<p><img src="/2020/05/25/%E7%BC%93%E5%AD%98/o_update2.png" alt="o_update2"></p>
+<blockquote>
+<p>订阅binlog程序在mysql中有<strong>现成的中间件叫canal</strong>，可以完成订阅binlog日志的功能</p>
+</blockquote>
 
       
     </div>
@@ -372,6 +510,14 @@
 
     <footer class="post-footer">
       
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag"># redis</a>
+          
+            <a href="/tags/%E4%B8%80%E8%87%B4%E6%80%A7/" rel="tag"># 一致性</a>
+          
+        </div>
+      
 
       
       
@@ -381,15 +527,15 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
+              <a href="/2020/05/25/model/" rel="next" title="个人博客搭建详解（Windows和Mac通用版）">
+                <i class="fa fa-chevron-left"></i> 个人博客搭建详解（Windows和Mac通用版）
+              </a>
+            
           </div>
 
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2020/05/25/model/" rel="prev" title="个人博客搭建详解（Windows和Mac通用版）">
-                个人博客搭建详解（Windows和Mac通用版） <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -541,7 +687,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Quick-Start"><span class="nav-number">1.</span> <span class="nav-text">Quick Start</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Create-a-new-post"><span class="nav-number">1.1.</span> <span class="nav-text">Create a new post</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Run-server"><span class="nav-number">1.2.</span> <span class="nav-text">Run server</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Generate-static-files"><span class="nav-number">1.3.</span> <span class="nav-text">Generate static files</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Deploy-to-remote-sites"><span class="nav-number">1.4.</span> <span class="nav-text">Deploy to remote sites</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#为什么要用缓存？缓存的优点在哪里？"><span class="nav-number">1.</span> <span class="nav-text">为什么要用缓存？缓存的优点在哪里？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#高性能"><span class="nav-number">1.1.</span> <span class="nav-text">高性能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#高并发"><span class="nav-number">1.2.</span> <span class="nav-text">高并发</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#用缓存必须考虑的问题？缓存带来的缺点？"><span class="nav-number">2.</span> <span class="nav-text">用缓存必须考虑的问题？缓存带来的缺点？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#缓存穿透"><span class="nav-number">2.1.</span> <span class="nav-text">缓存穿透</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#缓存击穿"><span class="nav-number">2.2.</span> <span class="nav-text">缓存击穿</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#缓存雪崩"><span class="nav-number">2.3.</span> <span class="nav-text">缓存雪崩</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#缓存和数据库的双写一致性"><span class="nav-number">3.</span> <span class="nav-text">缓存和数据库的双写一致性</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#先删除缓存，再更新数据库"><span class="nav-number">3.1.</span> <span class="nav-text">先删除缓存，再更新数据库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#先更新数据库，再删除缓存"><span class="nav-number">3.2.</span> <span class="nav-text">先更新数据库，再删除缓存</span></a></li></ol></li></ol></div>
             
 
           </div>
