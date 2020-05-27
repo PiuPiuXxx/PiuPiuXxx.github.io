@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="12306,算法原理," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="今天呢微博热搜出现了一个“建议12306开放二次改签”，评论里看到一条说12306购票算法超级复杂。所以！既然看到了我就要去好好的看一看神乎其神的12306购票算法！ 注意：12306购票算法目前官方没有发布权威的版本，所以以下只能是推测！！！ 算法思想车站占位编码首先我们先来看一下12306官网上的一张截图，以G303列车为例，对车次站台进行占位编码，从1开始到最后一站递加  对以上占位简单描述">
+<meta property="og:type" content="article">
+<meta property="og:title" content="12306购票系统核心算法解密">
+<meta property="og:url" content="http://yoursite.com/2020/05/27/12306/index.html">
+<meta property="og:site_name" content="进击的小勺子">
+<meta property="og:description" content="今天呢微博热搜出现了一个“建议12306开放二次改签”，评论里看到一条说12306购票算法超级复杂。所以！既然看到了我就要去好好的看一看神乎其神的12306购票算法！ 注意：12306购票算法目前官方没有发布权威的版本，所以以下只能是推测！！！ 算法思想车站占位编码首先我们先来看一下12306官网上的一张截图，以G303列车为例，对车次站台进行占位编码，从1开始到最后一站递加  对以上占位简单描述">
+<meta property="og:image" content="http://yoursite.com/2020/05/27/12306/G303.png">
+<meta property="og:image" content="http://yoursite.com/2020/05/27/12306/G303%E8%A1%A8.png">
+<meta property="og:image" content="http://yoursite.com/2020/05/27/12306/result.png">
+<meta property="article:published_time" content="2020-05-27T03:24:18.000Z">
+<meta property="article:modified_time" content="2020-05-27T05:47:16.457Z">
+<meta property="article:author" content="Weishao Cheng">
+<meta property="article:tag" content="12306">
+<meta property="article:tag" content="算法原理">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2020/05/27/12306/G303.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'PiuPiuXxx'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/05/27/12306/"/>
+
+
+
+
+
+  <title>12306购票系统核心算法解密 | 进击的小勺子</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">进击的小勺子</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">从小白到大牛的究极技术进阶之路</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/05/27/12306/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Weishao Cheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="进击的小勺子">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">12306购票系统核心算法解密</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-27T11:24:18+08:00">
+                2020-05-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AE%9E%E7%94%A8%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index">
+                    <span itemprop="name">实用技术</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AE%9E%E7%94%A8%E6%8A%80%E6%9C%AF/%E7%AE%97%E6%B3%95%E5%89%96%E6%9E%90/" itemprop="url" rel="index">
+                    <span itemprop="name">算法剖析</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/2020/05/27/12306/" class="leancloud_visitors" data-flag-title="12306购票系统核心算法解密">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>今天呢微博热搜出现了一个“建议12306开放二次改签”，评论里看到一条说12306购票算法超级复杂。所以！既然看到了我就要去好好的看一看神乎其神的12306购票算法！</p>
+<p><strong>注意：12306购票算法目前官方没有发布权威的版本，所以以下只能是推测！！！</strong></p>
+<h2 id="算法思想"><a href="#算法思想" class="headerlink" title="算法思想"></a>算法思想</h2><h3 id="车站占位编码"><a href="#车站占位编码" class="headerlink" title="车站占位编码"></a>车站占位编码</h3><p>首先我们先来看一下12306官网上的一张截图，以G303列车为例，对车次站台进行占位编码，从1开始到最后一站递加</p>
+<p><img src="/2020/05/27/12306/G303.png" alt="G303"></p>
+<p>对以上占位简单描述以下：G303总共23个站点，那么我们的单个座位的座位标识可以用24位长度的二进制字符串表示10000000000000000000000000，每一位代表一个站点。多一位的原因是懒得每次序号+1了！没错！我就是懒！</p>
+<p><img src="/2020/05/27/12306/G303%E8%A1%A8.png" alt="G303表"></p>
+<p>这里粘贴一张网络上找的表，按照我的理解12306在后台数据库的存储格式。相对于原图，我觉得每个车次的表都应该是单独存储的，也就是所谓的<strong>分库分表</strong>。</p>
+<p>订票表中的始发受限站点和终到受限站点可以灵活搭配（这个就可以实现限制站点发售）</p>
+<p>限售渠道十进制 7 代表 1（车站）| 2（互联网）|4（电话）=7 即该票允许车站， 互联网， 电话同时出售，或者还可以是 1|4 = 5 即该票只接受在车站和电话预定，由业务自行决定</p>
+<h3 id="查询余票"><a href="#查询余票" class="headerlink" title="查询余票"></a>查询余票</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">id</span>，座位类型，车厢号码，座位编码，座位位置,车票版本号 <span class="keyword">from</span> 订票表</span><br><span class="line"><span class="keyword">where</span>  座位标识= ~（（~座位标识）| <span class="number">000111111111111000</span>）</span><br><span class="line"><span class="keyword">and</span> 发车日期=<span class="string">'yyyy-MM-dd'</span></span><br><span class="line"><span class="keyword">and</span> 车次编码=<span class="string">'G303'</span></span><br><span class="line"><span class="keyword">and</span> 始发受限车站=始发受限车站 | <span class="number">000100000000000000</span></span><br><span class="line"><span class="keyword">and</span> 终到受限车站=终到受限车站 | <span class="number">000000000000001000</span></span><br><span class="line"><span class="keyword">and</span> 车次类型=<span class="string">'二等座'</span></span><br><span class="line"><span class="keyword">and</span> 座位位置=<span class="string">'F'</span></span><br><span class="line"><span class="keyword">and</span> 受限渠道= <span class="number">2</span> | 受限渠道</span><br><span class="line"><span class="keyword">order</span> <span class="keyword">by</span> 余票数量 <span class="keyword">asc</span> ,车厢 <span class="keyword">asc</span>  </span><br><span class="line"><span class="comment">--先卖余票少的，防止打乱更多的长途票</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="预定车票"><a href="#预定车票" class="headerlink" title="预定车票"></a>预定车票</h3><ul>
+<li><p>根据查询条件获取一条记录然后将车票状态改为锁定</p>
+</li>
+<li><p>待锁定成功后进行支付</p>
+</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">update</span> 订票表 <span class="keyword">set</span> </span><br><span class="line">座位标识 = 座位标识 | <span class="number">000111111111111000</span>, </span><br><span class="line">车票版本号 = 车票版本号 + <span class="number">1</span>, </span><br><span class="line">余票数量 = 余票数量-（<span class="number">15</span><span class="number">-3</span>）</span><br><span class="line"><span class="keyword">where</span> <span class="keyword">id</span> = XXXXXXXXXXX </span><br><span class="line"><span class="comment">-- 乐观锁根据更新结果是否为1则可以判定购票成功</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>支付成功后然后将保定到韶关的票保存到另外一张客户的车票表中</p>
+</li>
+<li><p>如果指定时间没有支付，那么直接调用退票sql</p>
+</li>
+</ul>
+<h3 id="退票"><a href="#退票" class="headerlink" title="退票"></a>退票</h3><p>获得该票的座位标识 （000111111111111000）与对应的票进行异或^运算，则即可回归票池</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">update</span> 订票表 <span class="keyword">set</span> </span><br><span class="line">座位标识 = 座位标识 ^ <span class="number">000111111111111000</span>, </span><br><span class="line">车票版本号 = 车票版本号 + <span class="number">1</span>, </span><br><span class="line">余票数量 = 余票数量 +（<span class="number">15</span><span class="number">-3</span>）</span><br><span class="line"><span class="keyword">where</span> <span class="keyword">id</span> = XXXXXXXXXXX </span><br><span class="line"><span class="comment">-- 乐观锁根据更新结果是否为1则可以判定退票成功</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="生产实践"><a href="#生产实践" class="headerlink" title="生产实践"></a>生产实践</h2><p>因为实际应用场景中，肯定不会只用一台数据库且全部请求全部冲击数据库</p>
+<ul>
+<li>分布式：分库分表、主从同步</li>
+<li>缓存：使用缓存提高并发（票信息根据不同车次、区间放入不同list）</li>
+<li>多线程同步：多线程对同一数据进行请求</li>
+<li>分布式事务问题：牵扯到钱一般是TCC，对业务代码造成大量倾入</li>
+</ul>
+<h2 id="代码实践"><a href="#代码实践" class="headerlink" title="代码实践"></a>代码实践</h2><p>自己结合了一些资料写了个小小的demo，也仅仅是demo，没有事务操作，没有数据库CRUD，没有多线程同步，仅仅是实现了12306购票系统代码的思想</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> 12306 </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> StringBuffer ticket;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        ticket = <span class="keyword">new</span> StringBuffer(<span class="string">"100000000000000000"</span>);</span><br><span class="line">        <span class="keyword">int</span> beginStation = <span class="number">3</span>;</span><br><span class="line">        <span class="keyword">int</span> endStation = <span class="number">15</span>;</span><br><span class="line">        System.out.println(<span class="string">"座位标识："</span> + ticket.toString());</span><br><span class="line">        <span class="keyword">long</span> beginTime = System.currentTimeMillis();</span><br><span class="line">        <span class="keyword">boolean</span> is_success = orderTicket(beginStation, endStation);</span><br><span class="line">        <span class="keyword">if</span> (!is_success) &#123;</span><br><span class="line">            System.out.println(<span class="string">"订票失败"</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            System.out.println(<span class="string">"订票后的结果："</span>+ticket.toString());</span><br><span class="line">            releaseTicket(beginStation, endStation);</span><br><span class="line">            System.out.println(<span class="string">"退票后的结果："</span>+ticket.toString());</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">long</span> endTime = System.currentTimeMillis();</span><br><span class="line">        System.out.println(<span class="string">"耗时："</span> + (endTime - beginTime) + <span class="string">"ms"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 订票</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> beginStation</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> endStation</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">orderTicket</span><span class="params">( <span class="keyword">int</span> beginStation, <span class="keyword">int</span> endStation)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (checkCanTicket(beginStation, endStation)) &#123;</span><br><span class="line">            toTicket(beginStation, endStation);</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 取消已定票</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> beginStation</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> endStation</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">releaseTicket</span><span class="params">(<span class="keyword">int</span> beginStation, <span class="keyword">int</span> endStation)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> length = ticket.length();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; length; i++) &#123;</span><br><span class="line">          <span class="keyword">if</span>( i &gt;= beginStation &amp;&amp; i&lt;endStation) &#123;</span><br><span class="line">            ticket.setCharAt(i, <span class="string">'0'</span>);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 生成订票后的结果</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> beginStation</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> endStation</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">toTicket</span><span class="params">(<span class="keyword">int</span> beginStation, <span class="keyword">int</span> endStation)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> length = ticket.length();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; length; i++) &#123;</span><br><span class="line">          <span class="keyword">if</span>( i &gt;= beginStation &amp;&amp; i&lt;endStation) &#123;</span><br><span class="line">            ticket.setCharAt(i, <span class="string">'1'</span>);</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 是否可以订票</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> beginStation</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> endStation</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">checkCanTicket</span><span class="params">(<span class="keyword">int</span> beginStation, <span class="keyword">int</span> endStation)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">boolean</span> result = <span class="keyword">true</span>;</span><br><span class="line">        String tempTicket = ticket.substring(beginStation, endStation);</span><br><span class="line">        <span class="keyword">if</span> (tempTicket.contains(<span class="string">"1"</span>)) &#123;</span><br><span class="line">            result = <span class="keyword">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> result;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后的结果如下：</p>
+<p><img src="/2020/05/27/12306/result.png" alt="result"></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/12306/" rel="tag"># 12306</a>
+          
+            <a href="/tags/%E7%AE%97%E6%B3%95%E5%8E%9F%E7%90%86/" rel="tag"># 算法原理</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/05/26/maven/" rel="next" title="Maven学习之路">
+                <i class="fa fa-chevron-left"></i> Maven学习之路
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/images/avatar.jpg"
+                alt="Weishao Cheng" />
+            
+              <p class="site-author-name" itemprop="name">Weishao Cheng</p>
+              <p class="site-description motion-element" itemprop="description">日常的技术学习记录（本人的first个人技术博客站点）</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7Carchive">
+              
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/PiuPiuXxx" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-globe"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="chengweishao@bupt.edu.cn" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-globe"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#算法思想"><span class="nav-number">1.</span> <span class="nav-text">算法思想</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#车站占位编码"><span class="nav-number">1.1.</span> <span class="nav-text">车站占位编码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#查询余票"><span class="nav-number">1.2.</span> <span class="nav-text">查询余票</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#预定车票"><span class="nav-number">1.3.</span> <span class="nav-text">预定车票</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#退票"><span class="nav-number">1.4.</span> <span class="nav-text">退票</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#生产实践"><span class="nav-number">2.</span> <span class="nav-text">生产实践</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#代码实践"><span class="nav-number">3.</span> <span class="nav-text">代码实践</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Weishao Cheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("uTC90aT0kDU4CwnN529GyeRg-gzGzoHsz", "wPYUsYzErG4kGBFQapHusPXr");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
