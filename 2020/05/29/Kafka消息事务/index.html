@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Kafka,分布式事务," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="分布式事务当前系统架构主流是分布式架构与微服务架构，在这种架构下数据源不是单一的数据库，业务逻辑往往需要在多个数据库中实现原子操作，单个数据库中的强大的本地事务无法保证多节点原子操作。 此时需要分布式事务来确保数据的一致性。目前使用较多的分布式事务解决方案有几种： XA事务：2PC&#x2F;3PCXA是由X&#x2F;Open组织提出的分布式事务的规范。XA规范主要定义了(全局)事务管理器(Transaction">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka消息事务特性">
+<meta property="og:url" content="http://yoursite.com/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/index.html">
+<meta property="og:site_name" content="进击的小勺子">
+<meta property="og:description" content="分布式事务当前系统架构主流是分布式架构与微服务架构，在这种架构下数据源不是单一的数据库，业务逻辑往往需要在多个数据库中实现原子操作，单个数据库中的强大的本地事务无法保证多节点原子操作。 此时需要分布式事务来确保数据的一致性。目前使用较多的分布式事务解决方案有几种： XA事务：2PC&#x2F;3PCXA是由X&#x2F;Open组织提出的分布式事务的规范。XA规范主要定义了(全局)事务管理器(Transaction">
+<meta property="og:image" content="http://yoursite.com/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/XA.png">
+<meta property="og:image" content="http://yoursite.com/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/TCC.png">
+<meta property="og:image" content="http://yoursite.com/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/mq.png">
+<meta property="og:image" content="http://yoursite.com/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/kafka.png">
+<meta property="article:published_time" content="2020-05-29T07:03:15.000Z">
+<meta property="article:modified_time" content="2020-05-29T08:33:43.200Z">
+<meta property="article:author" content="Weishao Cheng">
+<meta property="article:tag" content="Kafka">
+<meta property="article:tag" content="分布式事务">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/XA.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'PiuPiuXxx'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/05/29/Kafka消息事务/"/>
+
+
+
+
+
+  <title>Kafka消息事务特性 | 进击的小勺子</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">进击的小勺子</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">从小白到大牛的究极技术进阶之路</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Weishao Cheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="进击的小勺子">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Kafka消息事务特性</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-05-29T15:03:15+08:00">
+                2020-05-29
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AE%9E%E7%94%A8%E6%8A%80%E6%9C%AF/" itemprop="url" rel="index">
+                    <span itemprop="name">实用技术</span>
+                  </a>
+                </span>
+
+                
+                
+                  ， 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%AE%9E%E7%94%A8%E6%8A%80%E6%9C%AF/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" itemprop="url" rel="index">
+                    <span itemprop="name">学习笔记</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/" class="leancloud_visitors" data-flag-title="Kafka消息事务特性">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="分布式事务"><a href="#分布式事务" class="headerlink" title="分布式事务"></a>分布式事务</h2><p>当前系统架构主流是<strong>分布式架构</strong>与<strong>微服务架构</strong>，在这种架构下数据源不是单一的数据库，业务逻辑往往需要在多个数据库中实现原子操作，单个数据库中的强大的本地事务无法保证多节点原子操作。 此时需要分布式事务来确保数据的一致性。目前使用较多的分布式事务解决方案有几种：</p>
+<h3 id="XA事务：2PC-3PC"><a href="#XA事务：2PC-3PC" class="headerlink" title="XA事务：2PC/3PC"></a>XA事务：2PC/3PC</h3><p>XA是由X/Open组织提出的分布式事务的规范。XA规范主要定义了<strong>(全局)事务管理器</strong>(Transaction Manager)和<strong>(局部)资源管理器</strong>(Resource Manager)之间的接口。XA接口是双向的系统接口，在事务管理器（Transaction Manager）以及一个或多个资源管理器（Resource Manager）之间形成通信桥梁。实现XA事务的关键是两阶段和三阶段提交协议。</p>
+<p>两阶段提交协议（Two-phase Commit，2PC）经常被用来实现分布式事务。一般分为协调器C和若干事务参与者Si两种角色，这里的事务参与者就是具体的数据库，协调器可以和事务参与者在一台机器上，如下图：</p>
+<p><img src="/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/XA.png" alt="XA"></p>
+<p>二阶段提交协议主要包括由2个阶段：第一个阶段为准备阶段（prepare），第二阶段为提交阶段。准备阶段由事务协调者向事务参与者发送prepare消息，各个参与者处理本地事务但不提交，然后向事务协调者返回事务状态。 提交阶段根据准备阶段各参与者的执行请求，协调者确定事务是提交或者回滚，向各个参与者发送命令</p>
+<p>二阶段提交协议主要的问题是在提交执行过程中，所有的参与者都需要听从协调者的统一调度，期间处于阻塞状态而不能从事其他操作，这样效率及其低下。特别是当协调者发出提交通知到部分参与者后宕机，其他参与者就会阻塞</p>
+<p>针对二阶段提交存在的问题，三阶段提交协议在prepare与commit阶段之间增加一个pre-commit阶段。Prepare阶段只询问参与者而不做事务，而在pre-commit阶段各个参与者才会执行本地事务但不提交。Commit阶段就是直接提交。这样做可以避免二阶段当协调者迟迟没有发出commit或者rollback通知，参与者在超时后可以自行提交或者回滚，避免阻塞事务（这是因为经过了prepare阶段已经确认了各个参与者是可以执行的，最后第三阶段直接执行即可）。 三阶段提交也存在很多问题，也不能完全保证数据一致，完全一致需要用到Paxos算法</p>
+<p>这种分布式事务方案，比较适合单块应用里，跨多个库的分布式事务，而且因为严重依赖于数据库层面来搞定复杂的事务，效率很低，绝对不适合高并发的场景。如果要玩儿，那么基于 <code>Spring + JTA</code> 就可以搞定，自己随便搜个 demo 看看就知道了。</p>
+<p>这个方案，我们很少用，一般来说<strong>某个系统内部如果出现跨多个库</strong>的这么一个操作，是<strong>不合规</strong>的。我可以给大家介绍一下， 现在微服务，一个大的系统分成几十个甚至几百个服务。一般来说，我们的规定和规范，是要求<strong>每个服务只能操作自己对应的一个数据库</strong>。</p>
+<p>如果你要操作别的服务对应的库，不允许直连别的服务的库，违反微服务架构的规范，你随便交叉胡乱访问，几百个服务的话，全体乱套，这样的一套服务是没法管理的，没法治理的，可能会出现数据被别人改错，自己的库被别人写挂等情况。</p>
+<p>如果你要操作别人的服务的库，你必须是通过<strong>调用别的服务的接口</strong>来实现，绝对不允许交叉访问别人的数据库。</p>
+<h3 id="TCC方案"><a href="#TCC方案" class="headerlink" title="TCC方案"></a>TCC方案</h3><p>TCC分别对应Try、Confirm和Cancel三种操作</p>
+<ul>
+<li><p>Try 阶段：这个阶段说的是对各个服务的资源做检测以及对资源进行<strong>锁定或者预留</strong>。 </p>
+</li>
+<li><p>Confirm 阶段：这个阶段说的是在各个服务中<strong>执行实际的操作</strong>。 </p>
+</li>
+<li><p>Cancel 阶段：如果任何一个服务的业务方法执行出错，那么这里就需要<strong>进行补偿</strong>，就是执行已经执行成功的业务逻辑的回滚操作。（把那些执行成功的回滚） </p>
+</li>
+</ul>
+<p>TCC解决了跨应用业务操作的原子性问题，在诸如<strong>组合支付</strong>、<strong>账务拆分</strong>场景非常实用。TCC实际上把数据库层的二阶段提交上提到了应用层来实现，对于数据库来说是一阶段提交，规避了数据库层的2PC性能低下问题。TCC需要业务提供使用，因为<strong>事务回滚</strong>实际上是<strong>严重依赖于你自己写代码来回滚和补偿</strong>了，会造成补偿代码巨大，开发复杂和成本高昂。一般来说跟<strong>钱</strong>相关的，跟钱打交道的，<strong>支付</strong>、<strong>交易</strong>相关的场景，才会采用 TCC，严格保证分布式事务</p>
+<p><img src="/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/TCC.png" alt="TCC"></p>
+<h3 id="消息事务"><a href="#消息事务" class="headerlink" title="消息事务"></a>消息事务</h3><p>基于消息中间件的事务消息来完成分布式事务。事务消息可以确保本地执行事务与消息发送是原子的：先发送一条消息到消息中间件，然后执行本地事务，当本地事务成功后再发送提交确认到消息中间件，然后这条消息才能被其他业务消费者所能感知，从而确保原子性。</p>
+<p><img src="/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/mq.png" alt="mq"></p>
+<p><strong>什么是消息事务？</strong></p>
+<p>消息事务是指一系列的生产、消费操作可以要么都完成，要么都失败，类似数据库的事务。这个特性Kafka在0.10.2的版本是不支持的，从0.11版本开始才支持</p>
+<p><strong>支持事务消息有什么作用？</strong></p>
+<p>消息事务是实现分布式事务的一种方案，单个数据库的事务无法保证跨库之间的原子性，可以<strong>确保分布式场景下的数据最终一致性</strong></p>
+<p>消息事务实现了消息Exactly once语义，是<strong>消息传递语义</strong>中最难实现的一种</p>
+<ul>
+<li>At most once：最多一次（不会重复，但是可能丢失数据）</li>
+<li>At least once：至少投递一次（不会丢失，但是会导致重复）</li>
+<li>Exactly once:：有且仅有一次（不丢不重），也即幂等性</li>
+</ul>
+<p>Kafka的幂等性可以保证生产只对一个分区partition实现Exactly once语义，需要多个分区也实现这个语义，还需要引入消息事务确保原子性</p>
+<p><strong>● 幂等：partition内部的exactly-once顺序语义</strong></p>
+<p>幂等操作，是指可以执行多次，而不会产生与仅执行一次不同结果的操作，<strong>Producer的send操作现在是幂等的</strong>。在任何导致producer重试的情况下，相同的消息，如果被producer发送多次，也只会被写入Kafka一次。要打开此功能，并让所有partition获得exactly-once delivery、无数据丢失和in-order语义，需要修改broker的配置：<strong>enable.idempotence = true</strong>。<br>这个功能如何工作？它的工作方式类似于TCP：发送到Kafka的每批消息将包含一个序列号，该序列号用于重复数据的删除。与TCP不同，TCP只能在transient in-memory中提供保证。<strong>序列号将被持久化存储topic中，因此即使leader replica失败，接管的任何其他broker也将能感知到消息是否重复。</strong>这种机制的开销相当低：它只是在每批消息中添加了几个额外字段，该功能仅仅在非幂等producer上增加了可忽略的性能开销。</p>
+<p><strong>● 事务：跨partition的原子性写操作</strong></p>
+<p>Kafka现在支持使用新事务API原子性的对跨partition进行写操作，该API允许producer发送批量消息到多个partition。该功能同样支持在同一个事务中提交消费者offsets，因此真正意义上实现了end-to-end的exactly-once delivery语义。以下是一段示例代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">producer.initTransactions();</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  producer.beginTransaction();</span><br><span class="line">  producer.send(record1);</span><br><span class="line">  producer.send(record2);</span><br><span class="line">  producer.commitTransaction();</span><br><span class="line">&#125; <span class="keyword">catch</span>(ProducerFencedException e) &#123;</span><br><span class="line">  producer.close();</span><br><span class="line">&#125; <span class="keyword">catch</span>(KafkaException e) &#123;</span><br><span class="line">  producer.abortTransaction();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该代码片段描述了如何使用新的producer事务API原子性的发送消息至多个partition。<strong>值得注意的是，某个Kafka topic partition内部的消息可能是事务完整提交后的消息，也可能是事务执行过程中的部分消息</strong>。<br>而从consumer的角度来看，有两种策略去读取事务写入的消息，通过”<strong>isolation.level</strong>“来进行配置：</p>
+<ol>
+<li><code>read_committed</code>：可以同时读取事务执行过程中的部分写入数据和已经完整提交的事务写入数据；</li>
+<li><code>read_uncommitted</code>：完全不等待事务提交，按照offsets order去读取消息，也就是兼容0.11.x版本前Kafka的语义；</li>
+</ol>
+<p>我们必须通过配置consumer端的配置<code>isolation.level</code>，来正确使用事务API，通过使用 new Producer API并且对一些unique ID设置<code>transaction.id</code>（该配置属于producer端），该unique ID用于提供事务状态的连续性。</p>
+<h2 id="Kafka消息事务"><a href="#Kafka消息事务" class="headerlink" title="Kafka消息事务"></a>Kafka消息事务</h2><h3 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h3><p>为了支持事务，Kafka 0.11.0版本引入以下概念：</p>
+<ol>
+<li><p>事务协调者：类似于消费组负载均衡的协调者，每一个实现事务的生产端都被分配到一个事务协调者(Transaction Coordinator)。</p>
+</li>
+<li><p>引入一个内部Kafka Topic作为事务Log：类似于消费管理Offset的Topic，事务Topic本身也是持久化的，日志信息记录事务状态信息，由事务协调者写入。</p>
+</li>
+<li><p>引入控制消息(Control Messages)：这些消息是客户端产生的并写入到主题的特殊消息，但对于使用者来说不可见。它们是用来让broker告知消费者之前拉取的消息是否被原子性提交。</p>
+</li>
+<li><p>引入TransactionId：不同生产实例使用同一个TransactionId表示是同一个事务，可以跨Session的数据幂等发送。当具有相同Transaction ID的新的Producer实例被创建且工作时，旧的且拥有相同Transaction ID的Producer将不再工作，避免事务僵死。</p>
+</li>
+<li><p>Producer ID：每个新的Producer在初始化的时候会被分配一个唯一的PID，这个PID对用户是不可见的。主要是为提供幂等性时引入的。</p>
+</li>
+<li><p>Sequence Numbler。（对于每个PID，该Producer发送数据的每个&lt;Topic, Partition&gt;都对应一个从0开始单调递增的Sequence Number。</p>
+</li>
+<li><p>每个生产者增加一个epoch：用于标识同一个事务Id在一次事务中的epoch，每次初始化事务时会递增，从而让服务端可以知道生产者请求是否旧的请求。</p>
+</li>
+<li><p>幂等性：保证发送单个分区的消息只会发送一次，不会出现重复消息。增加一个幂等性的开关enable.idempotence，可以独立与事务使用，即可以只开启幂等但不开启事务。</p>
+</li>
+</ol>
+<h3 id="事务流程"><a href="#事务流程" class="headerlink" title="事务流程"></a>事务流程</h3><p>Kafka为了支持事务特性，引入一个新的组件：Transaction Coordinator。主要负责分配pid，记录事务状态等操作。下面时Kafka开启一个事务到提交一个事务的流程图：</p>
+<p><img src="/2020/05/29/Kafka%E6%B6%88%E6%81%AF%E4%BA%8B%E5%8A%A1/kafka.png" alt="kafka"></p>
+<p><strong>1、查找事务协调者</strong></p>
+<p>生产者会首先发起一个查找事务协调者的请求(FindCoordinatorRequest)。协调者会负责分配一个PID给生产者。类似于消费组的协调者。</p>
+<p><strong>2、获取produce ID</strong></p>
+<p>在知道事务协调者后，生产者需要往协调者发送初始化pid请求(initPidRequest)。这个请求分两种情况：</p>
+<p>●不带transactionID</p>
+<p>这种情况下直接生成一个新的produce ID即可，返回给客户端</p>
+<p>●带transactionID</p>
+<p>这种情况下，kafka根据transactionalId获取对应的PID，这个对应关系是保存在事务日志中（上图2a）。这样可以确保相同的TransactionId返回相同的PID，用于恢复或者终止之前未完成的事务。</p>
+<p><strong>3、启动事务</strong></p>
+<p>生产者通过调用beginTransaction接口启动事务，此时只是内部的状态记录为事务开始，但是事务协调者认为事务开始只有当生产者开始发送第一条消息才开始。</p>
+<p><strong>4、消费和生产配合过程</strong></p>
+<p>这一步是消费和生成互相配合完成事务的过程，其中涉及多个请求：</p>
+<p>● 增加分区到事务请求</p>
+<p>当生产者有新分区要写入数据，则会发送AddPartitionToTxnRequest到事务协调者。协调者会处理请求，主要做的事情是更新事务元数据信息，并把信息写入到事务日志中（事务Topic）。</p>
+<p>● 生产请求</p>
+<p>生产者通过调用send接口发送数据到分区，这些请求新增pid，epoch和sequence number字段。</p>
+<p>● 增加消费offset到事务</p>
+<p>生产者通过新增的snedOffsets ToTransaction接口，会发送某个分区的Offset信息到事务协调者。协调者会把分区信息增加到事务中。</p>
+<p>● 事务提交offset请求</p>
+<p>当生产者调用事务提交offset接口后，会发送一个TxnOffsetCommitRequest请求到消费组协调者，消费组协调者会把offset存储在__consumer-offsets Topic中。协调者会根据请求的PID和epoch验证生产者是否允许发起这个请求。 消费offset只有当事务提交后才对外可见。</p>
+<p> <strong>5、提交或回滚事务</strong></p>
+<p>用户通过调用commitTransaction或abortTranssaction方法提交或回滚事务。</p>
+<p>● EndTxnRequest</p>
+<p>当生产者完成事务后，客户端需要显式调用结束事务或者回滚事务。前者会使得消息对消费者可见，后者会对生产数据标记为Abort状态，使得消息对消费者不可见。无论是提交或者回滚，都是发送一个EndTnxRequest请求到事务协调者，写入PREPARE_COMMIT或者PREPARE_ABORT信息到事务记录日志中。</p>
+<p>● WriteTxnMarkerRequest</p>
+<p>这个请求是事务协调者向事务中每个TopicPartition的Leader发送的。每个Broker收到请求后会写入COMMIT(PID)或者ABORT(PID)控制信息到数据日志中(5.2a)。</p>
+<p>这个信息用于告知消费者当前消息是哪个事务，消息是否应该接受或者丢弃。而对于未提交消息，消费者会缓存该事务的消息直到提交或者回滚。</p>
+<p>这里要注意，如果事务也涉及到<strong>consumer_offsets，即该事务中有消费数据的操作且将该消费的Offset存于</strong>consumer_offsets中，Transaction Coordinator也需要向该内部Topic的各Partition的Leader发送WriteTxnMarkerRequest从而写入COMMIT(PID)或COMMIT(PID)控制信息。</p>
+<p>● 写入最终提交或回滚信息</p>
+<p>当提交和回滚信息写入数据日志后，事务协调者会往事务日志中写入最终的提交或者终止信息以表示事务已经完成，此时大部分于事务有关系的消息都可以被删除（通过标记后面在日志压缩时会被移除），我们只需要保留事务ID以及其时间戳即可。</p>
+<h3 id="Kafka事务特性"><a href="#Kafka事务特性" class="headerlink" title="Kafka事务特性"></a>Kafka事务特性</h3><p>Kafka的事务特性本质上代表了三个功能：<strong>原子写操作</strong>，<strong>拒绝僵尸实例（Zombie fencing）和读事务消息</strong>。</p>
+<p><strong>原子写</strong></p>
+<p><strong>Kafka的事务特性就是要确保跨分区的多个写操作的原子性。</strong></p>
+<p><strong>拒绝僵尸实例（Zombie fencing）</strong></p>
+<p>在分布式系统中，一个instance的宕机或失联，集群往往会自动启动一个新的实例来代替它的工作。此时若原实例恢复了，那么集群中就产生了两个具有相同职责的实例，此时前一个instance就被称为“僵尸实例（Zombie Instance）”。在Kafka中，两个相同的producer同时处理消息并生产出重复的消息（read-process-write模式），这样就严重违反了Exactly Once Processing的语义。这就是僵尸实例问题。</p>
+<p><strong>Kafka事务特性通过transaction-id属性来解决僵尸实例问题。所有具有相同transaction-id的Producer都会被分配相同的pid，同时每一个Producer还会被分配一个递增的epoch。Kafka收到事务提交请求时，如果检查当前事务提交者的epoch不是最新的，那么就会拒绝该Producer的请求。从而达成拒绝僵尸实例的目标。</strong></p>
+<p><strong>读事务消息</strong></p>
+<p>为了保证事务特性，Consumer如果设置了isolation.level = read_committed，那么它只会读取已经提交了的消息。在Producer成功提交事务后，Kafka会将所有该事务中的消息的Transaction Marker从uncommitted标记为committed状态，从而所有的Consumer都能够消费。</p>
+<h3 id="最大努力通知方案"><a href="#最大努力通知方案" class="headerlink" title="最大努力通知方案"></a>最大努力通知方案</h3><p>这个方案的大致意思就是：  系统 A 本地事务执行完之后，发送个消息到 MQ； 这里会有个专门消费 MQ 的最大努力通知服务，这个服务会消费 MQ 然后写入数据库中记录下来，或者是放入个内存队列也可以，接着调用系统 B 的接口； 要是系统 B 执行成功就 ok 了；要是系统 B 执行失败了，那么最大努力通知服务就定时尝试重新调用系统 B，反复 N 次，最后还是不行就放弃。  </p>
+<p>特别严格的场景，用的是 TCC 来保证强一致性；然后其他的一些场景基于阿里的 RocketMQ 来实现分布式事务。 严格资金要求绝对不能错的场景用的TCC 方案；如果是一般的分布式事务场景，订单插入之后要调用库存服务更新库存，库存数据没有资金那么的敏感，可以用可靠消息最终一致性方案。 </p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Kafka/" rel="tag"># Kafka</a>
+          
+            <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" rel="tag"># 分布式事务</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/05/28/ZeroCopy/" rel="next" title="ZeroCopy">
+                <i class="fa fa-chevron-left"></i> ZeroCopy
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/uploads/images/avatar.jpg"
+                alt="Weishao Cheng" />
+            
+              <p class="site-author-name" itemprop="name">Weishao Cheng</p>
+              <p class="site-description motion-element" itemprop="description">日常的技术学习记录（本人的first个人技术博客站点）</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/%7C%7Carchive">
+              
+                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/PiuPiuXxx" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-globe"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="chengweishao@bupt.edu.cn" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-globe"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#分布式事务"><span class="nav-number">1.</span> <span class="nav-text">分布式事务</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#XA事务：2PC-3PC"><span class="nav-number">1.1.</span> <span class="nav-text">XA事务：2PC&#x2F;3PC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TCC方案"><span class="nav-number">1.2.</span> <span class="nav-text">TCC方案</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#消息事务"><span class="nav-number">1.3.</span> <span class="nav-text">消息事务</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Kafka消息事务"><span class="nav-number">2.</span> <span class="nav-text">Kafka消息事务</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#基本概念"><span class="nav-number">2.1.</span> <span class="nav-text">基本概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#事务流程"><span class="nav-number">2.2.</span> <span class="nav-text">事务流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Kafka事务特性"><span class="nav-number">2.3.</span> <span class="nav-text">Kafka事务特性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#最大努力通知方案"><span class="nav-number">2.4.</span> <span class="nav-text">最大努力通知方案</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Weishao Cheng</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+        
+<div class="busuanzi-count">
+  <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+  
+    <span class="site-uv">
+      <i class="fa fa-user"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_uv"></span>
+      
+    </span>
+  
+
+  
+    <span class="site-pv">
+      <i class="fa fa-eye"></i>
+      <span class="busuanzi-value" id="busuanzi_value_site_pv"></span>
+      
+    </span>
+  
+</div>
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("uTC90aT0kDU4CwnN529GyeRg-gzGzoHsz", "wPYUsYzErG4kGBFQapHusPXr");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
