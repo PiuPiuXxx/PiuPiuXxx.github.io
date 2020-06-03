@@ -87,8 +87,9 @@
 <meta property="og:description" content="读写分离介绍在单台mysql实例的情况下，所有的读写操作都集中在这一个实例上。当读压力太大，单台mysql实例扛不住时，此时DBA一般会将数据库配置成集群，一个master(主库)，多个slave(从库)，master将数据通过binlog的方式同步给slave，可以将slave节点的数据理解为master节点数据的全量备份。 从应用的角度来说，需要对读(select、show、explain等)">
 <meta property="og:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/introduction.png">
 <meta property="og:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/mysql-master-slave.png">
+<meta property="og:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/comparison.png">
 <meta property="article:published_time" content="2020-06-03T11:16:46.000Z">
-<meta property="article:modified_time" content="2020-06-03T11:35:40.157Z">
+<meta property="article:modified_time" content="2020-06-03T12:01:40.738Z">
 <meta property="article:author" content="Weishao Cheng">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/introduction.png">
@@ -376,10 +377,28 @@
 <li><strong>高可用问题：</strong>主要包括：</li>
 </ol>
 <ul>
-<li><strong>新增slave节点：</strong>如果新增slave节点，应用应该感知到，可以将读请求转发到新的slave节点上。</li>
-<li><strong>slave宕机或下线：</strong>如果其中某个slave节点挂了/或者下线了，应该对其进行隔离，那么之后的读请求，应用将其转发到正常工作的slave节点上。</li>
-<li><strong>master宕机：</strong>需要进行主从切换，将其中某个slave提升为master，应用之后将写操作转到新的master节点上。</li>
+<li><p><strong>新增slave节点：</strong>如果新增slave节点，应用应该感知到，可以将读请求转发到新的slave节点上。</p>
+</li>
+<li><p><strong>slave宕机或下线：</strong>如果其中某个slave节点挂了/或者下线了，应该对其进行隔离，那么之后的读请求，应用将其转发到正常工作的slave节点上。</p>
+</li>
+<li><p><strong>master宕机：</strong>需要进行主从切换，将其中某个slave提升为master，应用之后将写操作转到新的master节点上。</p>
+</li>
 </ul>
+<h2 id="读写分离实现方案"><a href="#读写分离实现方案" class="headerlink" title="读写分离实现方案"></a>读写分离实现方案</h2><p>典型的数据库中间件设计方案有2种：服务端代理(proxy：代理数据库)、客户端代理(datasource：代理数据源)。下图演示了这两种方案的架构：</p>
+<p>可以看到不论是代理数据库还是代理数据源，底层都操作了多个数据库实例。不同的是：</p>
+<ul>
+<li><strong>服务端代理(proxy：代理数据库)中：</strong></li>
+</ul>
+<p>​      我们独立部署一个代理服务，这个代理服务背后管理多个数据库实例。而在应用中，我们通过一个普通的数据源(c3p0、druid、dbcp等)与代理服务器建立连接，所有的sql操作语句都是发送给这个代理，由这个代理去操作底层数据库，得到结果并返回给应用。在这种方案下，分库分表和读写分离的逻辑对开发人员是完全透明的。</p>
+<ul>
+<li><strong>客户端代理(datasource：代理数据源)：</strong></li>
+</ul>
+<p>​      应用程序需要使用一个特定的数据源，其作用是代理，内部管理了多个普通的数据源(c3p0、druid、dbcp等)，每个普通数据源各自与不同的库建立连接。应用程序产生的sql交给数据源代理进行处理，数据源内部对sql进行必要的操作，如sql改写等，然后交给各个普通的数据源去执行，将得到的结果进行合并，返回给应用。数据源代理通常也实现了JDBC规范定义的API，因此能够直接与orm框架整合。在这种方案下，用户的代码需要修改，使用这个代理的数据源，而不是直接使用c3p0、druid、dbcp这样的连接池。</p>
+<p><img src="/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/comparison.png" alt="comparison"></p>
+<p>client 层方案的<strong>优点在于不用部署，运维成本低，不需要代理层的二次转发请求，性能很高</strong>，但是如果遇到升级啥的需要各个系统都重新升级版本再发布，各个系统都需要<strong>耦合</strong> sharding-jdbc 的依赖</p>
+<p>proxy 层方案的<strong>缺点在于需要部署</strong>，自己运维一套中间件，运维成本高，但是<strong>好处在于对于各个项目是透明的</strong>，如果遇到升级之类的都是自己中间件那里搞就行了</p>
+<p>ORM框架代理目前有hibernate提供的hibernate-shards，也可以通过mybatis插件的方式编写。相对于前面两种方案，这种方案可以说是只有缺点，没有优点</p>
+<p>通常来说，这两个方案其实都可以选用，但是建议中小型公司选用 client 层方案轻便，而且维护成本低，不需要额外增派人手，而且中小型公司系统复杂度会低一些，项目也没那么多；但是中大型公司最好还是选用 mycat 这类 proxy 层方案，因为可能大公司系统和项目非常多，团队很大，人员充足，专人研究和维护 mycat，然后大量项目直接透明使用即可</p>
 
       
     </div>
@@ -564,7 +583,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离介绍"><span class="nav-number">1.</span> <span class="nav-text">读写分离介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#如何实现-MySQL-的读写分离？"><span class="nav-number">2.</span> <span class="nav-text">如何实现 MySQL 的读写分离？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MySQL-主从复制的原理是什么？"><span class="nav-number">3.</span> <span class="nav-text">MySQL 主从复制的原理是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离优点"><span class="nav-number">4.</span> <span class="nav-text">读写分离优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离挑战"><span class="nav-number">5.</span> <span class="nav-text">读写分离挑战</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离介绍"><span class="nav-number">1.</span> <span class="nav-text">读写分离介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#如何实现-MySQL-的读写分离？"><span class="nav-number">2.</span> <span class="nav-text">如何实现 MySQL 的读写分离？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MySQL-主从复制的原理是什么？"><span class="nav-number">3.</span> <span class="nav-text">MySQL 主从复制的原理是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离优点"><span class="nav-number">4.</span> <span class="nav-text">读写分离优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离挑战"><span class="nav-number">5.</span> <span class="nav-text">读写分离挑战</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离实现方案"><span class="nav-number">6.</span> <span class="nav-text">读写分离实现方案</span></a></li></ol></div>
             
 
           </div>
