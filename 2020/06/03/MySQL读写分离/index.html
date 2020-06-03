@@ -79,14 +79,19 @@
 
 
 
-<meta name="description" content="日常的技术学习记录（本人的first个人技术博客站点）">
-<meta property="og:type" content="website">
-<meta property="og:title" content="进击的小勺子">
-<meta property="og:url" content="http://yoursite.com/categories/%E5%AE%9E%E7%94%A8%E6%8A%80%E6%9C%AF/%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/index.html">
+<meta name="description" content="读写分离介绍在单台mysql实例的情况下，所有的读写操作都集中在这一个实例上。当读压力太大，单台mysql实例扛不住时，此时DBA一般会将数据库配置成集群，一个master(主库)，多个slave(从库)，master将数据通过binlog的方式同步给slave，可以将slave节点的数据理解为master节点数据的全量备份。 从应用的角度来说，需要对读(select、show、explain等)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL读写分离">
+<meta property="og:url" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/index.html">
 <meta property="og:site_name" content="进击的小勺子">
-<meta property="og:description" content="日常的技术学习记录（本人的first个人技术博客站点）">
+<meta property="og:description" content="读写分离介绍在单台mysql实例的情况下，所有的读写操作都集中在这一个实例上。当读压力太大，单台mysql实例扛不住时，此时DBA一般会将数据库配置成集群，一个master(主库)，多个slave(从库)，master将数据通过binlog的方式同步给slave，可以将slave节点的数据理解为master节点数据的全量备份。 从应用的角度来说，需要对读(select、show、explain等)">
+<meta property="og:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/introduction.png">
+<meta property="og:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/mysql-master-slave.png">
+<meta property="article:published_time" content="2020-06-03T11:16:46.000Z">
+<meta property="article:modified_time" content="2020-06-03T11:35:40.157Z">
 <meta property="article:author" content="Weishao Cheng">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/introduction.png">
 
 
 
@@ -116,13 +121,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/categories/实用技术/环境配置/"/>
+  <link rel="canonical" href="http://yoursite.com/2020/06/03/MySQL读写分离/"/>
 
 
 
 
 
-  <title>分类: 环境配置 | 进击的小勺子</title>
+  <title>MySQL读写分离 | 进击的小勺子</title>
   
 
 
@@ -141,7 +146,7 @@
     
   
 
-  <div class="container sidebar-position-left ">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -245,55 +250,189 @@
           <div id="content" class="content">
             
 
-  
-  
-  
-  <div class="post-block category">
+  <div id="posts" class="posts-expand">
+    
 
-    <div id="posts" class="posts-collapse">
-      <div class="collection-title">
-        <h1>环境配置<small>分类</small>
-        </h1>
-      </div>
+  
 
-      
-        
+  
+  
+  
 
   <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/">
 
-      <h2 class="post-title">
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Weishao Cheng">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/uploads/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="进击的小勺子">
+    </span>
+
+    
+      <header class="post-header">
+
         
-            <a class="post-title-link" href="/2020/05/26/maven/" itemprop="url">
-              
-                <span itemprop="name">Maven学习之路</span>
-              
-            </a>
         
-      </h2>
+          <h1 class="post-title" itemprop="name headline">MySQL读写分离</h1>
+        
 
-      <div class="post-meta">
-        <time class="post-time" itemprop="dateCreated"
-              datetime="2020-05-26T21:48:09+08:00"
-              content="2020-05-26" >
-          05-26
-        </time>
-      </div>
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-03T19:16:46+08:00">
+                2020-06-03
+              </time>
+            
 
-    </header>
-  </article>
+            
 
+            
+          </span>
+
+          
+
+          
+            
+          
+
+          
+          
+             <span id="/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/" class="leancloud_visitors" data-flag-title="MySQL读写分离">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+            <span class="post-meta-divider">|</span>
+            <span class="page-pv"><i class="fa fa-file-o"></i>
+            <span class="busuanzi-value" id="busuanzi_value_page_pv" ></span>
+            </span>
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="读写分离介绍"><a href="#读写分离介绍" class="headerlink" title="读写分离介绍"></a>读写分离介绍</h2><p>在单台mysql实例的情况下，所有的读写操作都集中在这一个实例上。<strong>当读压力太大，单台mysql实例扛不住时，此时DBA一般会将数据库配置成集群，一个master(主库)，多个slave(从库)，master将数据通过binlog的方式同步给slave，可以将slave节点的数据理解为master节点数据的全量备份</strong>。</p>
+<p>从应用的角度来说，需要对读(select、show、explain等)、写(insert、update、delete等)操作进行区分。如果是写操作，就走主库，主库会将数据同步给从库；之后有读操作，就走从库，从多个slave中选择一个，查询数据。上述流程如下图所示：</p>
+<p><img src="/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/introduction.png" alt="introduction"></p>
+<h2 id="如何实现-MySQL-的读写分离？"><a href="#如何实现-MySQL-的读写分离？" class="headerlink" title="如何实现 MySQL 的读写分离？"></a>如何实现 MySQL 的读写分离？</h2><p>基于<strong>主从复制</strong>架构，简单来说，一个主库，挂多个从库，主库进行写库操作，主库通过异步复制机制自动把数据给同步到从库上去。</p>
+<h2 id="MySQL-主从复制的原理是什么？"><a href="#MySQL-主从复制的原理是什么？" class="headerlink" title="MySQL 主从复制的原理是什么？"></a>MySQL 主从复制的原理是什么？</h2><p>主库将变更写入 binlog 日志，然后从库连接到主库之后，从库有一个 IO 线程，将主库的 binlog 日志拷贝到自己本地，写入一个 relay 中继日志中。接着从库中有一个 SQL 线程会从中继日志读取 binlog，然后执行 binlog 日志中的内容，也就是在自己本地再次执行一遍 SQL，这样就可以保证自己跟主库的数据的一致性</p>
+<p><img src="/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/mysql-master-slave.png" alt="mysql-master-slave"></p>
+<p>这里有一个非常重要的一点，就是从库同步主库数据的过程是串行化的，也就是说主库上并行的操作，在从库上会串行执行。所以这就是一个非常重要的点了，由于从库从主库拷贝日志以及串行执行 SQL 的特点，在高并发场景下，从库的数据一定会比主库慢一些，是<strong>有延时</strong>的。所以经常出现，刚写入主库的数据可能是读不到的，要过几十毫秒，甚至几百毫秒才能读取到。</p>
+<p>而且这里还有另外一个问题，就是如果主库突然宕机，然后恰好数据还没同步到从库，那么有些数据可能在从库上是没有的，有些数据可能就丢失了。</p>
+<p>所以 MySQL 实际上在这一块有两个机制，一个是<strong>半同步复制</strong>，用来解决主库数据丢失问题；一个是<strong>并行复制</strong>，用来解决主从同步延时问题。</p>
+<p>这个所谓<strong>半同步复制</strong>，也叫 <strong><em>semi-sync</em></strong> 复制，指的就是主库写入 binlog 日志之后，就会将<strong>强制</strong>此时立即将数据同步到从库，从库将日志写入自己本地的 relay log 之后，接着会返回一个 ack 给主库，主库接收到<strong>至少一个从库</strong>的 ack 之后才会认为写操作完成了。</p>
+<p>所谓<strong>并行复制</strong>，指的是从库开启多个线程，并行读取 relay log 中不同库的日志，然后<strong>并行重放不同库的日志</strong>，这是库级别的并行。</p>
+<h2 id="读写分离优点"><a href="#读写分离优点" class="headerlink" title="读写分离优点"></a>读写分离优点</h2><ol>
+<li><strong>避免单点故障：</strong>主从复制的数据库结构可以有效保证系统的高可用</li>
+<li><strong>负载均衡，读能力水平扩展：</strong>通过配置多个slave节点，将读的请求分发到不同的从库，从而可以增加系统的毒吞吐量，有效的避免过大的访问量对单个库造成的压力</li>
+</ol>
+<h2 id="读写分离挑战"><a href="#读写分离挑战" class="headerlink" title="读写分离挑战"></a>读写分离挑战</h2><ol>
+<li><strong>对sql类型进行判断：</strong>如果是select等读请求，就走从库，如果是insert、update、delete等写请求，就走主库。</li>
+<li><strong>主从数据同步延迟问题：</strong>因为数据是从master节点通过网络同步给多个slave节点，因此必然存在延迟。因此有可能出现我们在master节点中已经插入了数据，但是从slave节点却读取不到的问题。对于一些强一致性的业务场景，要求插入后必须能读取到，因此对于这种情况，我们需要提供一种方式，让读请求也可以走主库，而主库上的数据必然是最新的。<ul>
+<li>通过 MySQL 命令：<strong><em>show status</em></strong> 查看 Seconds_Behind_Master从库复制主库的延时</li>
+<li>将一个主库拆分为多个主库，每个主库的写并发就减少了几倍，此时主从延迟可以忽略不计</li>
+<li>打开 MySQL 支持的并行复制，多个库并行复制。如果说某个库的写入并发就是特别高，单库写并发达到了 2000/s，并行复制还是没意义</li>
+<li>重写代码，写代码的同学，要慎重，插入数据时立马查询可能查不到</li>
+<li>如果确实是存在必须先插入，立马要求就查询到，然后立马就要反过来执行一些操作，对这个查询<strong>设置直连主库</strong>。<strong>不推荐</strong>这种方法，丧失了读写分离的意义</li>
+</ul>
+</li>
+<li><strong>事务问题：</strong>如果一个事务中同时包含了读请求(如select)和写请求(如insert)，如果读请求走从库，写请求走主库，由于跨了多个库，那么jdbc本地事务已经无法控制，属于分布式事务的范畴。而分布式事务非常复杂且效率较低。因此对于读写分离，目前主流的做法是，事务中的所有sql统一都走主库，由于只涉及到一个库，jdbc本地事务就可以搞定。</li>
+<li><strong>高可用问题：</strong>主要包括：</li>
+</ol>
+<ul>
+<li><strong>新增slave节点：</strong>如果新增slave节点，应用应该感知到，可以将读请求转发到新的slave节点上。</li>
+<li><strong>slave宕机或下线：</strong>如果其中某个slave节点挂了/或者下线了，应该对其进行隔离，那么之后的读请求，应用将其转发到正常工作的slave节点上。</li>
+<li><strong>master宕机：</strong>需要进行主从切换，将其中某个slave提升为master，应用之后将写操作转到新的master节点上。</li>
+</ul>
 
       
     </div>
+    
+    
+    
 
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/06/02/redis%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6/" rel="next" title="redis持久化机制">
+                <i class="fa fa-chevron-left"></i> redis持久化机制
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
   </div>
   
   
   
+  </article>
 
-  
 
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
 
 
           </div>
@@ -301,6 +440,10 @@
 
 
           
+
+  
+
+
 
         </div>
         
@@ -321,8 +464,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -402,6 +554,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离介绍"><span class="nav-number">1.</span> <span class="nav-text">读写分离介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#如何实现-MySQL-的读写分离？"><span class="nav-number">2.</span> <span class="nav-text">如何实现 MySQL 的读写分离？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MySQL-主从复制的原理是什么？"><span class="nav-number">3.</span> <span class="nav-text">MySQL 主从复制的原理是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离优点"><span class="nav-number">4.</span> <span class="nav-text">读写分离优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离挑战"><span class="nav-number">5.</span> <span class="nav-text">读写分离挑战</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -566,6 +734,10 @@
 
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 
