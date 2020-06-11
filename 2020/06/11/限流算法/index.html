@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="数据库,读写分离," />
+  <meta name="keywords" content="分布式,高并发,限流," />
 
 
 
@@ -79,22 +79,22 @@
 
 
 
-<meta name="description" content="读写分离介绍在单台mysql实例的情况下，所有的读写操作都集中在这一个实例上。当读压力太大，单台mysql实例扛不住时，此时DBA一般会将数据库配置成集群，一个master(主库)，多个slave(从库)，master将数据通过binlog的方式同步给slave，可以将slave节点的数据理解为master节点数据的全量备份。 从应用的角度来说，需要对读(select、show、explain等)">
+<meta name="description" content="一、背景工作中对外提供的API 接口设计都要考虑限流，如果不考虑限流，会成系统的连锁反应，轻者响应缓慢，重者系统宕机，整个业务线崩溃，如何应对这种情况呢，我们可以对请求进行引流或者直接拒绝等操作，保持系统的可用性和稳定性，防止因流量暴增而导致的系统运行缓慢或宕机。 在开发高并发系统时有三把利器用来保护系统：缓存、降级和限流 缓存：缓存的目的是提升系统访问速度和增大系统处理容量降级：降级是当服务器压">
 <meta property="og:type" content="article">
-<meta property="og:title" content="MySQL读写分离">
-<meta property="og:url" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/index.html">
+<meta property="og:title" content="限流算法">
+<meta property="og:url" content="http://yoursite.com/2020/06/11/%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95/index.html">
 <meta property="og:site_name" content="进击的小勺子">
-<meta property="og:description" content="读写分离介绍在单台mysql实例的情况下，所有的读写操作都集中在这一个实例上。当读压力太大，单台mysql实例扛不住时，此时DBA一般会将数据库配置成集群，一个master(主库)，多个slave(从库)，master将数据通过binlog的方式同步给slave，可以将slave节点的数据理解为master节点数据的全量备份。 从应用的角度来说，需要对读(select、show、explain等)">
-<meta property="og:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/introduction.png">
-<meta property="og:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/mysql-master-slave.png">
-<meta property="og:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/comparison.png">
-<meta property="article:published_time" content="2020-06-03T11:16:46.000Z">
-<meta property="article:modified_time" content="2020-06-03T12:17:30.548Z">
+<meta property="og:description" content="一、背景工作中对外提供的API 接口设计都要考虑限流，如果不考虑限流，会成系统的连锁反应，轻者响应缓慢，重者系统宕机，整个业务线崩溃，如何应对这种情况呢，我们可以对请求进行引流或者直接拒绝等操作，保持系统的可用性和稳定性，防止因流量暴增而导致的系统运行缓慢或宕机。 在开发高并发系统时有三把利器用来保护系统：缓存、降级和限流 缓存：缓存的目的是提升系统访问速度和增大系统处理容量降级：降级是当服务器压">
+<meta property="og:image" content="http://yoursite.com/2020/06/11/%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95/bucket.png">
+<meta property="og:image" content="http://yoursite.com/2020/06/11/%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95/token.png">
+<meta property="article:published_time" content="2020-06-11T13:17:49.000Z">
+<meta property="article:modified_time" content="2020-06-11T13:45:10.895Z">
 <meta property="article:author" content="Weishao Cheng">
-<meta property="article:tag" content="数据库">
-<meta property="article:tag" content="读写分离">
+<meta property="article:tag" content="分布式">
+<meta property="article:tag" content="高并发">
+<meta property="article:tag" content="限流">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/introduction.png">
+<meta name="twitter:image" content="http://yoursite.com/2020/06/11/%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95/bucket.png">
 
 
 
@@ -124,13 +124,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/2020/06/03/MySQL读写分离/"/>
+  <link rel="canonical" href="http://yoursite.com/2020/06/11/限流算法/"/>
 
 
 
 
 
-  <title>MySQL读写分离 | 进击的小勺子</title>
+  <title>限流算法 | 进击的小勺子</title>
   
 
 
@@ -267,7 +267,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/06/11/%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="Weishao Cheng">
@@ -284,7 +284,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">MySQL读写分离</h1>
+          <h1 class="post-title" itemprop="name headline">限流算法</h1>
         
 
         <div class="post-meta">
@@ -296,8 +296,8 @@
               
                 <span class="post-meta-item-text">发表于</span>
               
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-03T19:16:46+08:00">
-                2020-06-03
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-06-11T21:17:49+08:00">
+                2020-06-11
               </time>
             
 
@@ -347,7 +347,7 @@
 
           
           
-             <span id="/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/" class="leancloud_visitors" data-flag-title="MySQL读写分离">
+             <span id="/2020/06/11/%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95/" class="leancloud_visitors" data-flag-title="限流算法">
                <span class="post-meta-divider">|</span>
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -383,53 +383,45 @@
       
 
       
-        <h2 id="读写分离介绍"><a href="#读写分离介绍" class="headerlink" title="读写分离介绍"></a>读写分离介绍</h2><p>在单台mysql实例的情况下，所有的读写操作都集中在这一个实例上。<strong>当读压力太大，单台mysql实例扛不住时，此时DBA一般会将数据库配置成集群，一个master(主库)，多个slave(从库)，master将数据通过binlog的方式同步给slave，可以将slave节点的数据理解为master节点数据的全量备份</strong>。</p>
-<p>从应用的角度来说，需要对读(select、show、explain等)、写(insert、update、delete等)操作进行区分。如果是写操作，就走主库，主库会将数据同步给从库；之后有读操作，就走从库，从多个slave中选择一个，查询数据。上述流程如下图所示：</p>
-<p><img src="/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/introduction.png" alt="introduction"></p>
-<h2 id="如何实现-MySQL-的读写分离？"><a href="#如何实现-MySQL-的读写分离？" class="headerlink" title="如何实现 MySQL 的读写分离？"></a>如何实现 MySQL 的读写分离？</h2><p>基于<strong>主从复制</strong>架构，简单来说，一个主库，挂多个从库，主库进行写库操作，主库通过异步复制机制自动把数据给同步到从库上去。</p>
-<h2 id="MySQL-主从复制的原理是什么？"><a href="#MySQL-主从复制的原理是什么？" class="headerlink" title="MySQL 主从复制的原理是什么？"></a>MySQL 主从复制的原理是什么？</h2><p>主库将变更写入 binlog 日志，然后从库连接到主库之后，从库有一个 IO 线程，将主库的 binlog 日志拷贝到自己本地，写入一个 relay 中继日志中。接着从库中有一个 SQL 线程会从中继日志读取 binlog，然后执行 binlog 日志中的内容，也就是在自己本地再次执行一遍 SQL，这样就可以保证自己跟主库的数据的一致性</p>
-<p><img src="/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/mysql-master-slave.png" alt="mysql-master-slave"></p>
-<p>这里有一个非常重要的一点，就是从库同步主库数据的过程是串行化的，也就是说主库上并行的操作，在从库上会串行执行。所以这就是一个非常重要的点了，由于从库从主库拷贝日志以及串行执行 SQL 的特点，在高并发场景下，从库的数据一定会比主库慢一些，是<strong>有延时</strong>的。所以经常出现，刚写入主库的数据可能是读不到的，要过几十毫秒，甚至几百毫秒才能读取到。</p>
-<p>而且这里还有另外一个问题，就是如果主库突然宕机，然后恰好数据还没同步到从库，那么有些数据可能在从库上是没有的，有些数据可能就丢失了。</p>
-<p>所以 MySQL 实际上在这一块有两个机制，一个是<strong>半同步复制</strong>，用来解决主库数据丢失问题；一个是<strong>并行复制</strong>，用来解决主从同步延时问题。</p>
-<p>这个所谓<strong>半同步复制</strong>，也叫 <strong><em>semi-sync</em></strong> 复制，指的就是主库写入 binlog 日志之后，就会将<strong>强制</strong>此时立即将数据同步到从库，从库将日志写入自己本地的 relay log 之后，接着会返回一个 ack 给主库，主库接收到<strong>至少一个从库</strong>的 ack 之后才会认为写操作完成了。</p>
-<p>所谓<strong>并行复制</strong>，指的是从库开启多个线程，并行读取 relay log 中不同库的日志，然后<strong>并行重放不同库的日志</strong>，这是库级别的并行。</p>
-<h2 id="读写分离优点"><a href="#读写分离优点" class="headerlink" title="读写分离优点"></a>读写分离优点</h2><ol>
-<li><strong>避免单点故障：</strong>主从复制的数据库结构可以有效保证系统的高可用</li>
-<li><strong>负载均衡，读能力水平扩展：</strong>通过配置多个slave节点，将读的请求分发到不同的从库，从而可以增加系统的毒吞吐量，有效的避免过大的访问量对单个库造成的压力</li>
-</ol>
-<h2 id="读写分离挑战"><a href="#读写分离挑战" class="headerlink" title="读写分离挑战"></a>读写分离挑战</h2><ol>
-<li><strong>对sql类型进行判断：</strong>如果是select等读请求，就走从库，如果是insert、update、delete等写请求，就走主库。</li>
-<li><strong>主从数据同步延迟问题：</strong>因为数据是从master节点通过网络同步给多个slave节点，因此必然存在延迟。因此有可能出现我们在master节点中已经插入了数据，但是从slave节点却读取不到的问题。对于一些强一致性的业务场景，要求插入后必须能读取到，因此对于这种情况，我们需要提供一种方式，让读请求也可以走主库，而主库上的数据必然是最新的。<ul>
-<li>通过 MySQL 命令：<strong><em>show status</em></strong> 查看 Seconds_Behind_Master从库复制主库的延时</li>
-<li>将一个主库拆分为多个主库，每个主库的写并发就减少了几倍，此时主从延迟可以忽略不计</li>
-<li>打开 MySQL 支持的并行复制，多个库并行复制。如果说某个库的写入并发就是特别高，单库写并发达到了 2000/s，并行复制还是没意义</li>
-<li>重写代码，写代码的同学，要慎重，插入数据时立马查询可能查不到</li>
-<li>如果确实是存在必须先插入，立马要求就查询到，然后立马就要反过来执行一些操作，对这个查询<strong>设置直连主库</strong>。<strong>不推荐</strong>这种方法，丧失了读写分离的意义</li>
-</ul>
-</li>
-<li><strong>事务问题：</strong>如果一个事务中同时包含了读请求(如select)和写请求(如insert)，如果读请求走从库，写请求走主库，由于跨了多个库，那么jdbc本地事务已经无法控制，属于分布式事务的范畴。而分布式事务非常复杂且效率较低。因此对于读写分离，目前主流的做法是，事务中的所有sql统一都走主库，由于只涉及到一个库，jdbc本地事务就可以搞定。</li>
-<li><strong>高可用问题：</strong>主要包括：</li>
-</ol>
+        <h2 id="一、背景"><a href="#一、背景" class="headerlink" title="一、背景"></a>一、背景</h2><p>工作中对外提供的API 接口设计都要考虑限流，如果不考虑限流，会成系统的连锁反应，轻者响应缓慢，重者系统宕机，整个业务线崩溃，如何应对这种情况呢，我们可以对请求进行引流或者直接拒绝等操作，保持系统的可用性和稳定性，防止因流量暴增而导致的系统运行缓慢或宕机。</p>
+<p>在开发高并发系统时有三把利器用来保护系统：<strong>缓存、降级和限流</strong></p>
+<p><strong>缓存</strong>：缓存的目的是提升系统访问速度和增大系统处理容量<br><strong>降级</strong>：降级是当服务器压力剧增的情况下，根据当前业务情况及流量对一些服务和页面有策略的降级，以此释放服务器资源以保证核心任务的正常运行<br><strong>限流</strong>：限流的目的是通过对并发访问/请求进行限速，或者对一个时间窗口内的请求进行限速来保护系统，一旦达到限制速率则可以拒绝服务、排队或等待、降级等处理</p>
+<h2 id="二、限流算法"><a href="#二、限流算法" class="headerlink" title="二、限流算法"></a>二、限流算法</h2><p>常用的限流算法有<strong>令牌桶和和漏桶</strong>，而Google开源项目Guava中的RateLimiter使用的就是令牌桶控制算法。</p>
+<h3 id="2-1-漏桶算法"><a href="#2-1-漏桶算法" class="headerlink" title="2.1 漏桶算法"></a>2.1 漏桶算法</h3><p>把请求比作是水，水来了都先放进桶里，并以限定的速度出水，当水来得过猛而出水不够快时就会导致水直接溢出，即拒绝服务。</p>
+<p><img src="/2020/06/11/%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95/bucket.png" alt="bucket"></p>
+<p>漏斗有一个进水口 和 一个出水口，出水口以一定速率出水，并且有一个最大出水速率：</p>
+<p><strong>在漏斗中没有水的时候：</strong></p>
 <ul>
-<li><p><strong>新增slave节点：</strong>如果新增slave节点，应用应该感知到，可以将读请求转发到新的slave节点上。</p>
+<li>如果进水速率小于等于最大出水速率，那么，出水速率等于进水速率，此时，不会积水</li>
+<li>如果进水速率大于最大出水速率，那么，漏斗以最大速率出水，此时，多余的水会积在漏斗中</li>
+</ul>
+<p><strong>在漏斗中有水的时候：</strong></p>
+<ul>
+<li><p>出水口以最大速率出水</p>
 </li>
-<li><p><strong>slave宕机或下线：</strong>如果其中某个slave节点挂了/或者下线了，应该对其进行隔离，那么之后的读请求，应用将其转发到正常工作的slave节点上。</p>
+<li><p>如果漏斗未满，且有进水的话，那么这些水会积在漏斗中</p>
 </li>
-<li><p><strong>master宕机：</strong>需要进行主从切换，将其中某个slave提升为master，应用之后将写操作转到新的master节点上。</p>
+<li><p>如果漏斗已满，且有进水的话，那么这些水会溢出到漏斗之外</p>
 </li>
 </ul>
-<h2 id="读写分离实现方案"><a href="#读写分离实现方案" class="headerlink" title="读写分离实现方案"></a>读写分离实现方案</h2><p>典型的数据库中间件设计方案有2种：服务端代理(proxy：代理数据库)、客户端代理(datasource：代理数据源)。下图演示了这两种方案的架构：</p>
-<p>可以看到不论是代理数据库还是代理数据源，底层都操作了多个数据库实例。不同的是：</p>
-<p><strong>服务端代理(proxy：代理数据库)中：</strong></p>
-<p>我们独立部署一个代理服务，这个代理服务背后管理多个数据库实例。而在应用中，我们通过一个普通的数据源(c3p0、druid、dbcp等)与代理服务器建立连接，所有的sql操作语句都是发送给这个代理，由这个代理去操作底层数据库，得到结果并返回给应用。在这种方案下，分库分表和读写分离的逻辑对开发人员是完全透明的。</p>
-<p><strong>客户端代理(datasource：代理数据源)：</strong></p>
-<p>应用程序需要使用一个特定的数据源，其作用是代理，内部管理了多个普通的数据源(c3p0、druid、dbcp等)，每个普通数据源各自与不同的库建立连接。应用程序产生的sql交给数据源代理进行处理，数据源内部对sql进行必要的操作，如sql改写等，然后交给各个普通的数据源去执行，将得到的结果进行合并，返回给应用。数据源代理通常也实现了JDBC规范定义的API，因此能够直接与orm框架整合。在这种方案下，用户的代码需要修改，使用这个代理的数据源，而不是直接使用c3p0、druid、dbcp这样的连接池。</p>
-<p><img src="/2020/06/03/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/comparison.png" alt="comparison"></p>
-<p>client 层方案的<strong>优点在于不用部署，运维成本低，不需要代理层的二次转发请求，性能很高</strong>，但是如果遇到升级啥的需要各个系统都重新升级版本再发布，各个系统都需要<strong>耦合</strong> sharding-jdbc 的依赖</p>
-<p>proxy 层方案的<strong>缺点在于需要部署</strong>，自己运维一套中间件，运维成本高，但是<strong>好处在于对于各个项目是透明的</strong>，如果遇到升级之类的都是自己中间件那里搞就行了</p>
-<p>ORM框架代理目前有hibernate提供的hibernate-shards，也可以通过mybatis插件的方式编写。相对于前面两种方案，这种方案可以说是只有缺点，没有优点</p>
-<p>通常来说，这两个方案其实都可以选用，但是建议中小型公司选用 client 层方案轻便，而且维护成本低，不需要额外增派人手，而且中小型公司系统复杂度会低一些，项目也没那么多；但是中大型公司最好还是选用 mycat 这类 proxy 层方案，因为可能大公司系统和项目非常多，团队很大，人员充足，专人研究和维护 mycat，然后大量项目直接透明使用即可</p>
+<h3 id="2-2-令牌桶算法"><a href="#2-2-令牌桶算法" class="headerlink" title="2.2 令牌桶算法"></a>2.2 令牌桶算法</h3><p>对于很多应用场景来说，除了要求能够限制数据的平均传输速率外，还要求<strong>允许某种程度的突发传输</strong>。这时候漏桶算法可能就不合适了，令牌桶算法更为适合。</p>
+<p>令牌桶算法的原理是系统以恒定的速率产生令牌，然后把令牌放到令牌桶中，令牌桶有一个容量，当令牌桶满了的时候，再向其中放令牌，那么多余的令牌会被丢弃；当想要处理一个请求的时候，需要从令牌桶中取出一个令牌，如果此时令牌桶中没有令牌，那么则拒绝该请求。</p>
+<p><img src="/2020/06/11/%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95/token.png" alt="token"></p>
+<h3 id="2-3-区别"><a href="#2-3-区别" class="headerlink" title="2.3 区别"></a>2.3 区别</h3><p>令牌桶和漏桶算法的区别是：令牌桶算法可积累发送数；桶满时会丢失令牌而不会丢失包。但是他们都可以进行基本的流量整形，使得网络应用不至于一下子把自己的流量全都注入网络造成的严重的拥塞和丢包事件。</p>
+<p><strong>漏桶</strong></p>
+<p>漏桶的出水速度是恒定的，那么意味着如果瞬时大流量的话，将有大部分请求被丢弃掉（也就是所谓的溢出）。</p>
+<p><strong>令牌桶</strong></p>
+<p>生成令牌的速度是恒定的，而请求去拿令牌是没有速度限制的。这意味，面对瞬时大流量，该算法可以在短时间内请求拿到大量令牌，而且拿令牌的过程并不是消耗很大的事情。</p>
+<h2 id="三、RateLimiter-用法实践"><a href="#三、RateLimiter-用法实践" class="headerlink" title="三、RateLimiter 用法实践"></a>三、RateLimiter 用法实践</h2><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.google.guava<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>guava<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">version</span>&gt;</span>26.0-jre<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">  <span class="comment">&lt;!-- or, for Android: --&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">version</span>&gt;</span>26.0-android<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Test</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        ExecutorService exec = Executors.newCachedThreadPool(<span class="number">100</span>);</span><br><span class="line">        <span class="comment">// 指定每秒放1个令牌</span></span><br><span class="line">        RateLimiter limiter = RateLimiter.create(<span class="number">1</span>);</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt; <span class="number">50</span>; i++) &#123;</span><br><span class="line">            <span class="comment">// 请求RateLimiter, 超过permits会被阻塞</span></span><br><span class="line">            <span class="comment">// acquire(int permits)函数主要用于获取permits个令牌，</span></span><br><span class="line">            <span class="comment">// 计算需要等待多长时间，进而挂起等待，并将该值返回</span></span><br><span class="line">            Double acquire = <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">if</span> (i == <span class="number">1</span>) &#123;</span><br><span class="line">                acquire = limiter.acquire(<span class="number">1</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (i == <span class="number">2</span>) &#123;</span><br><span class="line">                acquire = limiter.acquire(<span class="number">10</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (i == <span class="number">3</span>) &#123;</span><br><span class="line">                acquire = limiter.acquire(<span class="number">2</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (i == <span class="number">4</span>) &#123;</span><br><span class="line">                acquire = limiter.acquire(<span class="number">20</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                acquire = limiter.acquire(<span class="number">2</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            exec.executor(<span class="keyword">new</span> Task(<span class="string">"获取耗时："</span>+acquire+<span class="string">" 第 "</span>+i+<span class="string">" 个任务执行"</span>));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Task</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">    String str;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Task</span><span class="params">(String str)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.str = str;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        SimpleDateFormat sdf = <span class="keyword">new</span> SimpleDateFormat(<span class="string">"yyyy-MM-dd HH:mm:ss.SSS"</span>);</span><br><span class="line">        System.out.println(sdf.format(<span class="keyword">new</span> Date()) + <span class="string">" | "</span> + str);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>acquire函数主要用于获取permits个令牌，并计算需要等待多长时间，进而挂起等待，并将该值返回</p>
+<p>一个RateLimiter主要定义了发放permits的速率。如果没有额外的配置，permits将以固定的速度分配，单位是每秒多少permits。默认情况下，Permits将会被稳定的平缓的发放。</p>
+<p><strong>预消费能力</strong></p>
+<p>从输出结果可以看出，指定每秒放1个令牌，RateLimiter具有预消费的能力，通俗的讲”前人挖坑后人跳“，也就说上一次请求获取的permit数越多，那么下一次再获取授权时更待的时候会更长，反之，如果上一次获取的少，那么时间向后推移的就少，下一次获得许可的时间更短。可见，都是有代价的。正所谓：要浪漫就要付出代价。</p>
+<h2 id="最后"><a href="#最后" class="headerlink" title="最后"></a>最后</h2><p>不论是对于令牌桶拿不到令牌被拒绝，还是漏桶的水满了溢出，都是为了保证大部分流量的正常使用，而牺牲掉了少部分流量，这是合理的，如果因为极少部分流量需要保证的话，那么就可能导致系统达到极限而挂掉，得不偿失。</p>
+<p>本文讲的单机的限流，是JVM级别的的限流，所有的令牌生成都是在内存中，在分布式环境下不能直接这么用，可使用redis限流。</p>
 
       
     </div>
@@ -447,9 +439,11 @@
       
         <div class="post-tags">
           
-            <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag"># 数据库</a>
+            <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag"># 分布式</a>
           
-            <a href="/tags/%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB/" rel="tag"># 读写分离</a>
+            <a href="/tags/%E9%AB%98%E5%B9%B6%E5%8F%91/" rel="tag"># 高并发</a>
+          
+            <a href="/tags/%E9%99%90%E6%B5%81/" rel="tag"># 限流</a>
           
         </div>
       
@@ -462,8 +456,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2020/06/02/redis%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6/" rel="next" title="redis持久化机制">
-                <i class="fa fa-chevron-left"></i> redis持久化机制
+              <a href="/2020/06/10/%E5%BB%B6%E6%97%B6%E9%98%9F%E5%88%97%E7%9A%84%E5%8E%9F%E7%90%86%E5%92%8C%E5%AE%9E%E8%B7%B5/" rel="next" title="延时队列的原理和实践">
+                <i class="fa fa-chevron-left"></i> 延时队列的原理和实践
               </a>
             
           </div>
@@ -471,10 +465,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2020/06/09/Git%E5%92%8CMaven%E5%86%B2%E7%AA%81/" rel="prev" title="Git和Maven冲突">
-                Git和Maven冲突 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -626,7 +616,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离介绍"><span class="nav-number">1.</span> <span class="nav-text">读写分离介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#如何实现-MySQL-的读写分离？"><span class="nav-number">2.</span> <span class="nav-text">如何实现 MySQL 的读写分离？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MySQL-主从复制的原理是什么？"><span class="nav-number">3.</span> <span class="nav-text">MySQL 主从复制的原理是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离优点"><span class="nav-number">4.</span> <span class="nav-text">读写分离优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离挑战"><span class="nav-number">5.</span> <span class="nav-text">读写分离挑战</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读写分离实现方案"><span class="nav-number">6.</span> <span class="nav-text">读写分离实现方案</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、背景"><span class="nav-number">1.</span> <span class="nav-text">一、背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、限流算法"><span class="nav-number">2.</span> <span class="nav-text">二、限流算法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-漏桶算法"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 漏桶算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-令牌桶算法"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 令牌桶算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-区别"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 区别</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、RateLimiter-用法实践"><span class="nav-number">3.</span> <span class="nav-text">三、RateLimiter 用法实践</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#最后"><span class="nav-number">4.</span> <span class="nav-text">最后</span></a></li></ol></div>
             
 
           </div>
